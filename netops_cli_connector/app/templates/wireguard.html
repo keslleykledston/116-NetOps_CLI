@@ -7,9 +7,13 @@
   <div class="panel"><strong>Public Key local</strong><code>{{ client_public_key or 'sera gerada no provisionamento' }}</code></div>
   <div class="panel"><strong>Ultima provisao</strong><span class="pill {{ 'ok' if last_provision.ok else 'bad' }}">{{ 'ok' if last_provision.ok else ('erro' if last_provision else 'nunca') }}</span></div>
 </section>
-<div class="actions">
-  <form method="post" action="/wireguard/provision"><button type="submit">Provisionar via token</button></form>
-</div>
+<h2>Provisionamento via token</h2>
+<form class="form-grid" method="post" action="/wireguard/provision">
+  <label>URL do NetOps Server <input name="netops_server_url" value="{{ provision_settings.netops_server_url or '' }}" placeholder="https://netops.seudominio.com"></label>
+  <label>Caminho da API <input name="provision_path" value="{{ provision_settings.provision_path or '/api/connectors/wireguard/provision' }}"></label>
+  <label>Token do conector <input name="connector_token" type="password" placeholder="{{ provision_settings.connector_token or 'cole o token fornecido pelo servidor' }}"></label>
+  <button type="submit">Provisionar via token</button>
+</form>
 <form class="form-grid" method="post" action="/wireguard/save">
   <label>Endpoint do NetOps Server <input name="endpoint" value="{{ raw.endpoint or '' }}"></label>
   <label>Porta <input name="port" value="{{ raw.port or '51820' }}"></label>

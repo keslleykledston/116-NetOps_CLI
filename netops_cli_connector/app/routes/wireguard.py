@@ -22,6 +22,7 @@ def page(request: Request):
             "raw": wireguard.get_config(),
             "status": wireguard.status(),
             "last_provision": wireguard.last_provision(),
+            "provision_settings": wireguard.get_provision_settings(masked=True),
             "client_public_key": wireguard.local_public_key(),
         },
     )
@@ -61,8 +62,14 @@ def up(request: Request):
 
 
 @router.post("/provision")
-def provision(request: Request):
+def provision(
+    request: Request,
+    netops_server_url: str = Form(""),
+    provision_path: str = Form("/api/connectors/wireguard/provision"),
+    connector_token: str = Form(""),
+):
     require_login(request)
+    wireguard.save_provision_settings(netops_server_url, provision_path, connector_token)
     wireguard.provision_with_token()
     return RedirectResponse("/wireguard", status_code=303)
 
@@ -89,6 +96,7 @@ def test(request: Request):
             "status": wireguard.status(),
             "result": result,
             "last_provision": wireguard.last_provision(),
+            "provision_settings": wireguard.get_provision_settings(masked=True),
             "client_public_key": wireguard.local_public_key(),
         },
     )

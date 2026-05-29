@@ -39,7 +39,7 @@ def mask_secret(value: str | None, keep: int = 4) -> str:
 
 
 def scrub(data: Any, keys: set[str] | None = None) -> Any:
-    secret_keys = keys or {"password", "psk", "private_key", "community", "token"}
+    secret_keys = keys or {"password", "psk", "private_key", "community", "token", "connector_token"}
     if isinstance(data, dict):
         return {key: (mask_secret(str(value)) if key in secret_keys else scrub(value, secret_keys)) for key, value in data.items()}
     if isinstance(data, list):

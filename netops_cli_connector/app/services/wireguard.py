@@ -12,6 +12,7 @@ from app.storage import read_json, write_json_secure
 
 CONFIG_PATH = settings.runtime_dir / "wireguard.json"
 LAST_PROVISION_PATH = settings.runtime_dir / "wireguard_last_provision.json"
+PROVISION_SETTINGS_PATH = settings.runtime_dir / "wireguard_provision.json"
 
 
 def get_config(masked: bool = False) -> dict[str, Any]:
@@ -49,6 +50,30 @@ def _record_provision(payload: dict[str, Any]) -> dict[str, Any]:
 
 def last_provision() -> dict[str, Any]:
     return read_json(LAST_PROVISION_PATH, {})
+
+
+def get_provision_settings(masked: bool = False) -> dict[str, Any]:
+    from app.storage import scrub
+
+    data = read_json(
+        PROVISION_SETTINGS_PATH,
+        {
+            "netops_server_url": settings.netops_server_url,
+            "provision_path": settings.netops_wg_provision_path,
+            "connector_token": settings.connector_token,
+        },
+    )
+    return scrub(data) if masked else data
+
+
+def save_provision_settings(netops_server_url: str, provision_path: str, connector_token: str) -> None:
+    existing = get_provision_settings()
+    data = {
+        "netops_server_url": netops_server_url.rstrip("/") or existing.get("netops_server_url", ""),
+        "provision_path": provision_path or existing.get("provision_path", settings.netops_wg_provision_path),
+        "connector_token": connector_token or existing.get("connector_token", ""),
+    }
+    write_json_secure(PROVISION_SETTINGS_PATH, data)
 
 
 def generate_keypair() -> dict[str, str]:
@@ -98,7 +123,12 @@ def _normalize_provision_response(response: dict[str, Any]) -> dict[str, str]:
 
 
 def provision_with_token() -> dict[str, Any]:
-    if not settings.netops_server_url or not settings.connector_token:
+    provision_settings = get_provision_settings()
+    netops_server_url = str(provision_settings.get("netops_server_url", "")).rstrip("/")
+    connector_token = str(provision_settings.get("connector_token", ""))
+    provision_path = str(provision_settings.get("provision_path", settings.netops_wg_provision_path))
+
+    if not netops_server_url or not connector_token:
         return _record_provision(
             {
                 "ok": False,
@@ -108,7 +138,7 @@ def provision_with_token() -> dict[str, Any]:
             }
         )
 
-    if "netops.example.com" in settings.netops_server_url:
+    if "netops.example.com" in netops_server_url:
         return _record_provision(
             {
                 "ok": False,
@@ -130,7 +160,7 @@ def provision_with_token() -> dict[str, Any]:
         private_key = keys["private_key"]
         public_key = keys["public_key"]
 
-    url = f"{settings.netops_server_url}{settings.netops_wg_provision_path}"
+    url = f"{netops_server_url}{provision_path}"
     request_payload = {
         "connector_name": settings.connector_name,
         "public_key": public_key,
@@ -142,7 +172,7 @@ def provision_with_token() -> dict[str, Any]:
         response = requests.post(
             url,
             json=request_payload,
-            headers={"Authorization": f"Bearer {settings.connector_token}"},
+            headers={"Authorization": f"Bearer {connector_token}"},
             timeout=20,
         )
     except requests.RequestException as exc:

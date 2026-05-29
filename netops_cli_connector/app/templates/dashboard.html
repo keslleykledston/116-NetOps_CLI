@@ -7,11 +7,33 @@
   <div class="panel"><strong>WAN detectada</strong><code>{{ status.wan_interface }}</code></div>
   <div class="panel"><strong>LAN configurada</strong><code>{{ status.lan_interface }}</code></div>
   <div class="panel"><strong>WireGuard</strong><span class="pill {{ 'ok' if status.wireguard_status == 'up' else 'bad' }}">{{ status.wireguard_status }}</span></div>
+  <div class="panel"><strong>WG interfaces</strong><code>{{ status.wireguard_stats.interfaces | length }}</code></div>
   <div class="panel"><strong>L2TP/IPsec</strong><span class="pill {{ 'ok' if status.l2tp_ipsec_status == 'up' else 'bad' }}">{{ status.l2tp_ipsec_status }}</span></div>
   <div class="panel"><strong>Rotas configuradas</strong><code>{{ status.routes_count }}</code></div>
   <div class="panel"><strong>NAT</strong><span class="pill {{ 'ok' if status.nat_enabled else 'bad' }}">{{ 'ativo' if status.nat_enabled else 'inativo' }}</span></div>
   <div class="panel"><strong>Ultimo heartbeat</strong><code>{{ status.last_heartbeat.sent_at or 'nunca' }}</code></div>
 </section>
+
+<h2>WireGuard</h2>
+{% if status.wireguard_stats.interfaces %}
+<section class="grid">
+  {% for iface in status.wireguard_stats.interfaces %}
+  <div class="panel">
+    <strong>{{ iface.interface }}</strong>
+    <div>
+      <div><code>{{ iface.peers_count }}</code> peer(s)</div>
+      <div class="muted">porta {{ iface.listening_port or 'n/a' }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% else %}
+<section class="grid">
+  <div class="panel"><strong>WireGuard</strong><span class="pill bad">sem interface ativa</span></div>
+  <div class="panel"><strong>Estado</strong><code>{{ status.wireguard_status }}</code></div>
+  <div class="panel"><strong>Ultimo heartbeat</strong><code>{{ status.last_heartbeat.sent_at or 'nunca' }}</code></div>
+</section>
+{% endif %}
 
 <h2>IPs locais</h2>
 <pre>{{ status.interfaces }}</pre>

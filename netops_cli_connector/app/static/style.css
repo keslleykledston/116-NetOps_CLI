@@ -59,6 +59,7 @@ h2 { margin-top: 28px; font-size: 18px; }
 }
 .pill.ok { color: var(--ok); background: #dcfae6; }
 .pill.bad { color: var(--danger); background: #fee4e2; }
+.muted { color: var(--muted); font-size: 12px; }
 pre {
   overflow: auto;
   background: #111827;

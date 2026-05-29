@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from typing import Any
 
 import requests
@@ -244,6 +245,78 @@ def up():
 
 def down():
     return run(["wg-quick", "down", "netops"], timeout=30, sensitive_values=list(get_config().values()))
+
+
+def _format_handshake(value: str) -> str:
+    try:
+        stamp = int(value)
+    except (TypeError, ValueError):
+        return "never"
+    if stamp <= 0:
+        return "never"
+    return datetime.fromtimestamp(stamp, tz=timezone.utc).isoformat()
+
+
+def _format_bytes(value: str) -> str:
+    try:
+        total = int(value)
+    except (TypeError, ValueError):
+        return value
+    units = ["B", "KiB", "MiB", "GiB", "TiB"]
+    size = float(total)
+    unit = 0
+    while size >= 1024 and unit < len(units) - 1:
+        size /= 1024
+        unit += 1
+    if unit == 0:
+        return f"{total} B"
+    return f"{size:.1f} {units[unit]}"
+
+
+def stats() -> dict[str, Any]:
+    interfaces = run(["wg", "show", "interfaces"], timeout=5)
+    names = [item for item in interfaces.stdout.split() if item] if interfaces.ok else []
+    if not names:
+        names = [settings.wg_interface, "netops"]
+    seen = set()
+    data = []
+    for iface in names:
+        if iface in seen:
+            continue
+        seen.add(iface)
+        dump = run(["wg", "show", iface, "dump"], timeout=5)
+        if not dump.ok or not dump.stdout.strip():
+            continue
+        lines = [line for line in dump.stdout.splitlines() if line.strip()]
+        if not lines:
+            continue
+        interface_fields = lines[0].split("\t")
+        peers = []
+        for row in lines[1:]:
+            fields = row.split("\t")
+            if len(fields) < 8:
+                continue
+            peers.append(
+                {
+                    "public_key": fields[0],
+                    "endpoint": fields[2] or "local",
+                    "allowed_ips": fields[3],
+                    "latest_handshake": _format_handshake(fields[4]),
+                    "transfer_rx": _format_bytes(fields[5]),
+                    "transfer_tx": _format_bytes(fields[6]),
+                    "persistent_keepalive": fields[7] or "0",
+                }
+            )
+        data.append(
+            {
+                "interface": iface,
+                "listening_port": interface_fields[2] if len(interface_fields) > 2 else "",
+                "fwmark": interface_fields[3] if len(interface_fields) > 3 else "",
+                "peers_count": len(peers),
+                "peers": peers,
+            }
+        )
+    return {"interfaces": data, "active": bool(data)}
 
 
 def status() -> str:

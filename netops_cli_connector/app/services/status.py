@@ -40,6 +40,7 @@ def get_status() -> dict:
         "lan_interface": settings.lan_interface,
         "configured_wan_interface": settings.wan_interface,
         "wireguard_status": wireguard.status(),
+        "wireguard_stats": wireguard.stats(),
         "l2tp_ipsec_status": l2tp_ipsec.status(),
         "routes_count": len(routes),
         "routes": routes,

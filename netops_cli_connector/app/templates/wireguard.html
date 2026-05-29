@@ -7,6 +7,48 @@
   <div class="panel"><strong>Public Key local</strong><code>{{ client_public_key or 'sera gerada no provisionamento' }}</code></div>
   <div class="panel"><strong>Ultima provisao</strong><span class="pill {{ 'ok' if last_provision.ok else 'bad' }}">{{ 'ok' if last_provision.ok else ('erro' if last_provision else 'nunca') }}</span></div>
 </section>
+
+<h2>Estatisticas</h2>
+{% if wireguard_stats.interfaces %}
+<section class="grid">
+  {% for iface in wireguard_stats.interfaces %}
+  <div class="panel"><strong>Interface</strong><code>{{ iface.interface }}</code></div>
+  <div class="panel"><strong>Peers</strong><code>{{ iface.peers_count }}</code></div>
+  <div class="panel"><strong>Porta</strong><code>{{ iface.listening_port or 'n/a' }}</code></div>
+  {% endfor %}
+</section>
+<table>
+  <thead>
+    <tr>
+      <th>Peer</th>
+      <th>Endpoint</th>
+      <th>Allowed IPs</th>
+      <th>Handshake</th>
+      <th>RX</th>
+      <th>TX</th>
+      <th>Keepalive</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for iface in wireguard_stats.interfaces %}
+      {% for peer in iface.peers %}
+      <tr>
+        <td><code>{{ peer.public_key }}</code></td>
+        <td><code>{{ peer.endpoint }}</code></td>
+        <td><code>{{ peer.allowed_ips }}</code></td>
+        <td><code>{{ peer.latest_handshake }}</code></td>
+        <td><code>{{ peer.transfer_rx }}</code></td>
+        <td><code>{{ peer.transfer_tx }}</code></td>
+        <td><code>{{ peer.persistent_keepalive }}</code></td>
+      </tr>
+      {% endfor %}
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Nenhuma interface WireGuard ativa no momento.</p>
+{% endif %}
+
 <h2>Provisionamento via token</h2>
 <form class="form-grid" method="post" action="/wireguard/provision">
   <label>Nome do conector <input name="connector_name" value="{{ provision_settings.connector_name or '' }}" placeholder="4WNET_BVA"></label>

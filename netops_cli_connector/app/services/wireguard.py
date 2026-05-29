@@ -99,7 +99,24 @@ def _normalize_provision_response(response: dict[str, Any]) -> dict[str, str]:
 
 def provision_with_token() -> dict[str, Any]:
     if not settings.netops_server_url or not settings.connector_token:
-        return _record_provision({"ok": False, "error": "NETOPS_SERVER_URL or CONNECTOR_TOKEN not configured"})
+        return _record_provision(
+            {
+                "ok": False,
+                "status": "config_pendente",
+                "error": "NETOPS_SERVER_URL ou CONNECTOR_TOKEN nao configurado.",
+                "hint": "Edite o arquivo .env, informe os dados reais do NetOps Server e reinicie o container.",
+            }
+        )
+
+    if "netops.example.com" in settings.netops_server_url:
+        return _record_provision(
+            {
+                "ok": False,
+                "status": "config_pendente",
+                "error": "NETOPS_SERVER_URL ainda esta com o placeholder https://netops.example.com.",
+                "hint": "Troque NETOPS_SERVER_URL pela URL real do servidor NetOps e rode docker compose up -d.",
+            }
+        )
 
     cfg = get_config()
     if cfg.get("private_key"):

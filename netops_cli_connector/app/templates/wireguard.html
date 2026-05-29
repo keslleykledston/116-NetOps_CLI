@@ -5,7 +5,7 @@
 <section class="grid">
   <div class="panel"><strong>Provisionamento</strong><span class="pill {{ 'ok' if raw.provisioned else 'bad' }}">{{ 'via token' if raw.provisioned else 'manual/pendente' }}</span></div>
   <div class="panel"><strong>Public Key local</strong><code>{{ client_public_key or 'sera gerada no provisionamento' }}</code></div>
-  <div class="panel"><strong>Ultima provisao</strong><span class="pill {{ 'ok' if last_provision.ok else 'bad' }}">{{ 'ok' if last_provision.ok else (last_provision.error or 'nunca') }}</span></div>
+  <div class="panel"><strong>Ultima provisao</strong><span class="pill {{ 'ok' if last_provision.ok else 'bad' }}">{{ 'ok' if last_provision.ok else ('erro' if last_provision else 'nunca') }}</span></div>
 </section>
 <div class="actions">
   <form method="post" action="/wireguard/provision"><button type="submit">Provisionar via token</button></form>
@@ -27,6 +27,9 @@
 </div>
 {% if last_provision %}
 <h2>Resultado do provisionamento</h2>
+{% if last_provision.ran_at %}<p>Horario: <code>{{ last_provision.ran_at }}</code></p>{% endif %}
+{% if last_provision.error %}<p class="error">{{ last_provision.error }}</p>{% endif %}
+{% if last_provision.hint %}<p>{{ last_provision.hint }}</p>{% endif %}
 <pre>{{ last_provision }}</pre>
 {% endif %}
 {% if result %}<h2>Resultado</h2><pre>{{ result.stdout }}{{ result.stderr }}</pre>{% endif %}

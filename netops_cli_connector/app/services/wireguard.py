@@ -213,7 +213,22 @@ def provision_with_token() -> dict[str, Any]:
     normalized = _normalize_provision_response(provision_data)
     missing = [key for key in ["endpoint", "server_public_key", "allowed_ips", "tunnel_ip"] if not normalized.get(key)]
     if missing:
-        return _record_provision({"ok": False, "error": f"missing fields in provision response: {', '.join(missing)}", "public_key": public_key})
+        raw_keys = sorted(provision_data.keys()) if isinstance(provision_data, dict) else []
+        return _record_provision(
+            {
+                "ok": False,
+                "error": f"missing fields in provision response: {', '.join(missing)}",
+                "hint": "O servidor respondeu, mas nao entregou a chave publica do WireGuard. Sem server_public_key o client nao consegue montar /etc/wireguard/netops.conf.",
+                "public_key": public_key,
+                "response_keys": raw_keys,
+                "response_summary": {
+                    "connector_name": provision_data.get("connector_name") if isinstance(provision_data, dict) else "",
+                    "endpoint": provision_data.get("endpoint") if isinstance(provision_data, dict) else "",
+                    "wireguard_ip": provision_data.get("wireguard_ip") if isinstance(provision_data, dict) else "",
+                    "server_public_key_present": bool(provision_data.get("server_public_key")) if isinstance(provision_data, dict) else False,
+                },
+            }
+        )
 
     saved = {**cfg, **normalized, "private_key": private_key, "client_public_key": public_key, "provisioned": True}
     save_config(saved)

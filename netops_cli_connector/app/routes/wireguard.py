@@ -14,7 +14,17 @@ router = APIRouter(prefix="/wireguard")
 @router.get("", response_class=HTMLResponse)
 def page(request: Request):
     require_login(request)
-    return request.app.state.templates.TemplateResponse("wireguard.html", {"request": request, "config": wireguard.get_config(masked=True), "raw": wireguard.get_config(), "status": wireguard.status()})
+    return request.app.state.templates.TemplateResponse(
+        "wireguard.html",
+        {
+            "request": request,
+            "config": wireguard.get_config(masked=True),
+            "raw": wireguard.get_config(),
+            "status": wireguard.status(),
+            "last_provision": wireguard.last_provision(),
+            "client_public_key": wireguard.local_public_key(),
+        },
+    )
 
 
 @router.post("/save")
@@ -50,6 +60,13 @@ def up(request: Request):
     return RedirectResponse("/wireguard", status_code=303)
 
 
+@router.post("/provision")
+def provision(request: Request):
+    require_login(request)
+    wireguard.provision_with_token()
+    return RedirectResponse("/wireguard", status_code=303)
+
+
 @router.post("/down")
 def down(request: Request):
     require_login(request)
@@ -63,4 +80,15 @@ def test(request: Request):
     cfg = wireguard.get_config()
     first_allowed = (cfg.get("allowed_ips") or "10.255.0.1").split(",")[0].strip().split("/")[0]
     result = ping(first_allowed, 2)
-    return request.app.state.templates.TemplateResponse("wireguard.html", {"request": request, "config": wireguard.get_config(masked=True), "raw": cfg, "status": wireguard.status(), "result": result})
+    return request.app.state.templates.TemplateResponse(
+        "wireguard.html",
+        {
+            "request": request,
+            "config": wireguard.get_config(masked=True),
+            "raw": cfg,
+            "status": wireguard.status(),
+            "result": result,
+            "last_provision": wireguard.last_provision(),
+            "client_public_key": wireguard.local_public_key(),
+        },
+    )

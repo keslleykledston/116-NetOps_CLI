@@ -2,6 +2,14 @@
 {% block content %}
 <h1>WAN / WireGuard</h1>
 <p>Status: <span class="pill {{ 'ok' if status == 'up' else 'bad' }}">{{ status }}</span></p>
+<section class="grid">
+  <div class="panel"><strong>Provisionamento</strong><span class="pill {{ 'ok' if raw.provisioned else 'bad' }}">{{ 'via token' if raw.provisioned else 'manual/pendente' }}</span></div>
+  <div class="panel"><strong>Public Key local</strong><code>{{ client_public_key or 'sera gerada no provisionamento' }}</code></div>
+  <div class="panel"><strong>Ultima provisao</strong><span class="pill {{ 'ok' if last_provision.ok else 'bad' }}">{{ 'ok' if last_provision.ok else (last_provision.error or 'nunca') }}</span></div>
+</section>
+<div class="actions">
+  <form method="post" action="/wireguard/provision"><button type="submit">Provisionar via token</button></form>
+</div>
 <form class="form-grid" method="post" action="/wireguard/save">
   <label>Endpoint do NetOps Server <input name="endpoint" value="{{ raw.endpoint or '' }}"></label>
   <label>Porta <input name="port" value="{{ raw.port or '51820' }}"></label>
@@ -17,5 +25,9 @@
   <form method="post" action="/wireguard/down"><button class="danger" type="submit">Desconectar</button></form>
   <form method="post" action="/wireguard/test"><button type="submit">Testar tunel</button></form>
 </div>
+{% if last_provision %}
+<h2>Resultado do provisionamento</h2>
+<pre>{{ last_provision }}</pre>
+{% endif %}
 {% if result %}<h2>Resultado</h2><pre>{{ result.stdout }}{{ result.stderr }}</pre>{% endif %}
 {% endblock %}

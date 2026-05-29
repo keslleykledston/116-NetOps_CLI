@@ -148,6 +148,7 @@ WEB_USERNAME=admin
 WEB_PASSWORD=change-me
 NETOPS_SERVER_URL=https://netops.example.com
 CONNECTOR_TOKEN=change-me
+NETOPS_WG_PROVISION_PATH=/api/connectors/wireguard/provision
 WG_INTERFACE=wg-netops
 LAN_INTERFACE=eth0
 WAN_INTERFACE=eth0
@@ -166,6 +167,7 @@ Notas:
 - `WG_INTERFACE`: nome esperado para interface WireGuard.
 - `NETOPS_SERVER_URL`: URL do servidor central que recebe heartbeat.
 - `CONNECTOR_TOKEN`: token Bearer para heartbeat.
+- `NETOPS_WG_PROVISION_PATH`: endpoint do servidor central usado para provisionar WireGuard via token.
 
 ## Construcao Manual
 
@@ -269,6 +271,77 @@ certbot --nginx -d netopscli.devops.k3gsolutions.com.br
 ## WireGuard
 
 Acesse `WAN / WireGuard` na interface web.
+
+### Autenticacao e Provisionamento
+
+WireGuard nao autentica o tunel com token. WireGuard autentica peers com chaves:
+
+- Private key do client: fica somente no conector.
+- Public key do client: enviada ao servidor.
+- Private key do servidor: fica somente no servidor.
+- Public key do servidor: recebida pelo client.
+
+O `CONNECTOR_TOKEN` e usado para autenticar o provisionamento/API com o NetOps Server. O fluxo recomendado e:
+
+1. O conector gera a private key localmente.
+2. O conector deriva a public key local.
+3. O conector envia a public key ao NetOps Server usando `Authorization: Bearer <CONNECTOR_TOKEN>`.
+4. O NetOps Server cadastra o peer e devolve endpoint, public key do servidor, IP do tunel e Allowed IPs.
+5. O conector salva `/etc/wireguard/netops.conf`.
+
+Endpoint esperado no servidor central:
+
+```http
+POST /api/connectors/wireguard/provision
+Authorization: Bearer <CONNECTOR_TOKEN>
+```
+
+Payload enviado:
+
+```json
+{
+  "connector_name": "cliente-a",
+  "public_key": "<CLIENT_PUBLIC_KEY>",
+  "wireguard_interface": "wg-netops",
+  "lan_interface": "eth0",
+  "wan_interface": "eth0"
+}
+```
+
+Resposta esperada:
+
+```json
+{
+  "endpoint": "vpn.netops.example.com",
+  "port": 51820,
+  "server_public_key": "<SERVER_PUBLIC_KEY>",
+  "allowed_ips": "10.255.0.1/32, 10.200.0.0/16",
+  "tunnel_ip": "10.255.0.2/30",
+  "keepalive": 25
+}
+```
+
+Tambem e aceito responder dentro de `wireguard`:
+
+```json
+{
+  "wireguard": {
+    "server_endpoint": "vpn.netops.example.com:51820",
+    "server_public_key": "<SERVER_PUBLIC_KEY>",
+    "allowed_ips": "10.255.0.1/32, 10.200.0.0/16",
+    "client_tunnel_ip": "10.255.0.2/30",
+    "persistent_keepalive": 25
+  }
+}
+```
+
+Na interface, use o botao `Provisionar via token`. No CLI:
+
+```bash
+docker exec -it netops_cli_connector netops-cli wg provision
+```
+
+O modo manual continua disponivel na mesma tela.
 
 Campos principais:
 

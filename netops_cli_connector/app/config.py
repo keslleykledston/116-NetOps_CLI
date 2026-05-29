@@ -12,6 +12,7 @@ class Settings:
     web_password: str = os.getenv("WEB_PASSWORD", "change-me")
     netops_server_url: str = os.getenv("NETOPS_SERVER_URL", "").rstrip("/")
     connector_token: str = os.getenv("CONNECTOR_TOKEN", "")
+    netops_wg_provision_path: str = os.getenv("NETOPS_WG_PROVISION_PATH", "/api/connectors/wireguard/provision")
     wg_interface: str = os.getenv("WG_INTERFACE", "wg-netops")
     lan_interface: str = os.getenv("LAN_INTERFACE", "eth0")
     wan_interface: str = os.getenv("WAN_INTERFACE", "eth0")

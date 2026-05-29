@@ -37,6 +37,7 @@ def main() -> int:
     wg_sub = wg.add_subparsers(dest="wg_command", required=True)
     wg_sub.add_parser("up")
     wg_sub.add_parser("down")
+    wg_sub.add_parser("provision")
 
     routes = sub.add_parser("routes")
     routes_sub = routes.add_subparsers(dest="routes_command", required=True)
@@ -66,7 +67,12 @@ def main() -> int:
     if args.command == "heartbeat":
         return print_result(send_once())
     if args.command == "wg":
-        return print_result(wireguard.up() if args.wg_command == "up" else wireguard.down())
+        if args.wg_command == "up":
+            return print_result(wireguard.up())
+        if args.wg_command == "down":
+            return print_result(wireguard.down())
+        if args.wg_command == "provision":
+            return print_result(wireguard.provision_with_token())
     if args.command == "routes":
         print(json.dumps({"configured": routing.configured_routes(), "system": routing.system_routes().stdout}, indent=2))
         return 0

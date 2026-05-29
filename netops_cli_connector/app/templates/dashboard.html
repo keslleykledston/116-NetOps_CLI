@@ -2,6 +2,7 @@
 {% block content %}
 <h1>Dashboard</h1>
 <section class="grid">
+  <div class="panel"><strong>Conector</strong><code>{{ status.connector_name }}</code></div>
   <div class="panel"><strong>Status geral</strong><span class="pill ok">{{ status.status }}</span></div>
   <div class="panel"><strong>WAN detectada</strong><code>{{ status.wan_interface }}</code></div>
   <div class="panel"><strong>LAN configurada</strong><code>{{ status.lan_interface }}</code></div>

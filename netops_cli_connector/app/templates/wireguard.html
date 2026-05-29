@@ -9,6 +9,7 @@
 </section>
 <h2>Provisionamento via token</h2>
 <form class="form-grid" method="post" action="/wireguard/provision">
+  <label>Nome do conector <input name="connector_name" value="{{ provision_settings.connector_name or '' }}" placeholder="4WNET_BVA"></label>
   <label>URL do NetOps Server <input name="netops_server_url" value="{{ provision_settings.netops_server_url or '' }}" placeholder="https://netops.seudominio.com"></label>
   <label>Caminho da API <input name="provision_path" value="{{ provision_settings.provision_path or '/api/connectors/wireguard/provision' }}"></label>
   <label>Token do conector <input name="connector_token" type="password" placeholder="{{ provision_settings.connector_token or 'cole o token fornecido pelo servidor' }}"></label>

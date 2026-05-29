@@ -58,6 +58,7 @@ def get_provision_settings(masked: bool = False) -> dict[str, Any]:
     data = read_json(
         PROVISION_SETTINGS_PATH,
         {
+            "connector_name": settings.connector_name,
             "netops_server_url": settings.netops_server_url,
             "provision_path": settings.netops_wg_provision_path,
             "connector_token": settings.connector_token,
@@ -66,9 +67,14 @@ def get_provision_settings(masked: bool = False) -> dict[str, Any]:
     return scrub(data) if masked else data
 
 
-def save_provision_settings(netops_server_url: str, provision_path: str, connector_token: str) -> None:
+def connector_name() -> str:
+    return str(get_provision_settings().get("connector_name") or settings.connector_name)
+
+
+def save_provision_settings(connector_name: str, netops_server_url: str, provision_path: str, connector_token: str) -> None:
     existing = get_provision_settings()
     data = {
+        "connector_name": connector_name or existing.get("connector_name", settings.connector_name),
         "netops_server_url": netops_server_url.rstrip("/") or existing.get("netops_server_url", ""),
         "provision_path": provision_path or existing.get("provision_path", settings.netops_wg_provision_path),
         "connector_token": connector_token or existing.get("connector_token", ""),
@@ -117,7 +123,7 @@ def _normalize_provision_response(response: dict[str, Any]) -> dict[str, str]:
         "port": port,
         "server_public_key": _first(data, "server_public_key", "public_key"),
         "allowed_ips": _first(data, "allowed_ips", "allowedIPs", default="10.255.0.1/32"),
-        "tunnel_ip": _first(data, "tunnel_ip", "client_tunnel_ip", "address"),
+        "tunnel_ip": _first(data, "tunnel_ip", "client_tunnel_ip", "address", "wireguard_ip"),
         "keepalive": _first(data, "keepalive", "persistent_keepalive", "persistentKeepalive", default="25"),
     }
 
@@ -162,7 +168,7 @@ def provision_with_token() -> dict[str, Any]:
 
     url = f"{netops_server_url}{provision_path}"
     request_payload = {
-        "connector_name": settings.connector_name,
+        "connector_name": str(provision_settings.get("connector_name") or settings.connector_name),
         "public_key": public_key,
         "wireguard_interface": settings.wg_interface,
         "lan_interface": settings.lan_interface,

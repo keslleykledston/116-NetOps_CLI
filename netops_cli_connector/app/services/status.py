@@ -34,7 +34,7 @@ def get_status() -> dict:
     routes = routing.configured_routes()
     nat = firewall.get_nat()
     return {
-        "connector_name": settings.connector_name,
+        "connector_name": wireguard.connector_name(),
         "status": "online",
         "wan_interface": detect_default_interface(),
         "lan_interface": settings.lan_interface,

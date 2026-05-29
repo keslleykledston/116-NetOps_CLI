@@ -64,12 +64,13 @@ def up(request: Request):
 @router.post("/provision")
 def provision(
     request: Request,
+    connector_name: str = Form(""),
     netops_server_url: str = Form(""),
     provision_path: str = Form("/api/connectors/wireguard/provision"),
     connector_token: str = Form(""),
 ):
     require_login(request)
-    wireguard.save_provision_settings(netops_server_url, provision_path, connector_token)
+    wireguard.save_provision_settings(connector_name, netops_server_url, provision_path, connector_token)
     wireguard.provision_with_token()
     return RedirectResponse("/wireguard", status_code=303)
 

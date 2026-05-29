@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>WAN / WireGuard</h1>
+<p>Status: <span class="pill {{ 'ok' if status == 'up' else 'bad' }}">{{ status }}</span></p>
+<form class="form-grid" method="post" action="/wireguard/save">
+  <label>Endpoint do NetOps Server <input name="endpoint" value="{{ raw.endpoint or '' }}"></label>
+  <label>Porta <input name="port" value="{{ raw.port or '51820' }}"></label>
+  <label>Private Key local <input name="private_key" type="password" placeholder="{{ config.private_key or '' }}"></label>
+  <label>Public Key do servidor <input name="server_public_key" value="{{ raw.server_public_key or '' }}"></label>
+  <label>Allowed IPs <input name="allowed_ips" value="{{ raw.allowed_ips or '10.255.0.1/32, 10.200.0.0/16' }}"></label>
+  <label>IP local do tunel <input name="tunnel_ip" value="{{ raw.tunnel_ip or '10.255.0.2/30' }}"></label>
+  <label>Keepalive <input name="keepalive" value="{{ raw.keepalive or '25' }}"></label>
+  <button type="submit">Salvar configuracao</button>
+</form>
+<div class="actions">
+  <form method="post" action="/wireguard/up"><button type="submit">Conectar</button></form>
+  <form method="post" action="/wireguard/down"><button class="danger" type="submit">Desconectar</button></form>
+  <form method="post" action="/wireguard/test"><button type="submit">Testar tunel</button></form>
+</div>
+{% if result %}<h2>Resultado</h2><pre>{{ result.stdout }}{{ result.stderr }}</pre>{% endif %}
+{% endblock %}

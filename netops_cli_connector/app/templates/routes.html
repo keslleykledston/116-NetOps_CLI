@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Rotas Estaticas</h1>
+<form class="form-grid" method="post" action="/routes/add">
+  <label>Destino CIDR <input name="destination" placeholder="10.10.0.0/16" required></label>
+  <label>Gateway <input name="gateway" placeholder="192.168.88.1"></label>
+  <label>Interface <input name="interface" placeholder="eth0"></label>
+  <label>Metrica <input name="metric" placeholder="100"></label>
+  <label>Descricao <input name="description"></label>
+  <button type="submit">Adicionar / atualizar</button>
+</form>
+
+<h2>Configuradas</h2>
+<table>
+  <thead><tr><th>Destino</th><th>Gateway</th><th>Interface</th><th>Metrica</th><th>Descricao</th><th>Remover</th></tr></thead>
+  <tbody>
+    {% for route in routes %}
+    <tr>
+      <td><code>{{ route.destination }}</code></td><td>{{ route.gateway }}</td><td>{{ route.interface }}</td><td>{{ route.metric }}</td><td>{{ route.description }}</td>
+      <td>
+        <form method="post" action="/routes/delete">
+          <input type="hidden" name="destination" value="{{ route.destination }}">
+          <input name="confirm" placeholder="{{ route.destination }}" required>
+          <button class="danger" type="submit">Remover</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<h2>Rotas do sistema</h2>
+<pre>{{ system_routes.stdout }}</pre>
+{% endblock %}

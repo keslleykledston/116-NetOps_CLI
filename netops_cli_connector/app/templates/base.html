@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NetOps CLI Connector</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">NetOps CLI Connector</a>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/wireguard">WAN / WireGuard</a>
+      <a href="/l2tp-ipsec">LAN / L2TP IPsec</a>
+      <a href="/routes">Rotas</a>
+      <a href="/nat">NAT</a>
+      <a href="/diagnostics">Diagnosticos</a>
+    </nav>
+    <form method="post" action="/logout"><button type="submit">Sair</button></form>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

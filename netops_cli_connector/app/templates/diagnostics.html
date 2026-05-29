@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Diagnosticos</h1>
+<section class="diagnostics">
+  <form method="post" action="/diagnostics/ping"><input name="host" placeholder="Host/IP" required><button>Ping</button></form>
+  <form method="post" action="/diagnostics/traceroute"><input name="host" placeholder="Host/IP" required><button>Traceroute</button></form>
+  <form method="post" action="/diagnostics/tcp"><input name="host" placeholder="Host/IP" required><input name="port" value="22" required><button>TCP porta</button></form>
+  <form method="post" action="/diagnostics/udp"><input name="host" placeholder="Host/IP" required><input name="port" value="161" required><button>UDP porta</button></form>
+  <form method="post" action="/diagnostics/snmp"><input name="host" placeholder="Host/IP" required><input name="community" type="password" placeholder="Community" required><input name="oid" value="1.3.6.1.2.1.1.1.0"><button>SNMP walk</button></form>
+  <a class="button-link" href="/diagnostics/system">Mostrar rotas, interfaces, firewall e logs</a>
+</section>
+{% if result %}<h2>Resultado</h2><pre>{{ result.command }}
+rc={{ result.returncode }}
+{{ result.stdout }}
+{{ result.stderr }}</pre>{% endif %}
+{% if json_result %}<h2>Resultado</h2><pre>{{ json_result }}</pre>{% endif %}
+{% if system %}
+  {% for name, item in system.items() %}
+  <h2>{{ name }}</h2>
+  <pre>{{ item.stdout }}{{ item.stderr }}</pre>
+  {% endfor %}
+{% endif %}
+{% endblock %}

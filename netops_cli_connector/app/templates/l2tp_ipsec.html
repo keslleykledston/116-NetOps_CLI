@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>LAN / L2TP + IPsec</h1>
+<section class="grid">
+  <div class="panel"><strong>Status PPP</strong><span class="pill {{ 'ok' if status == 'up' else 'bad' }}">{{ status }}</span></div>
+  <div class="panel"><strong>Interface</strong><code>{{ raw.interface or 'ppp0' }}</code></div>
+  <div class="panel"><strong>IPsec</strong><span class="pill {{ 'ok' if 'ESTABLISHED' in diagnostics.ipsec_status.stdout or 'INSTALLED' in diagnostics.ipsec_status.stdout else 'bad' }}">{{ 'ativo' if 'ESTABLISHED' in diagnostics.ipsec_status.stdout or 'INSTALLED' in diagnostics.ipsec_status.stdout else 'inativo/erro' }}</span></div>
+  <div class="panel"><strong>Ultima acao</strong><span class="pill {{ 'ok' if last_action.ok else 'bad' }}">{{ last_action.action or 'nenhuma' }}</span></div>
+</section>
+
+<form class="form-grid" method="post" action="/l2tp-ipsec/save">
+  <label>Servidor VPN remoto <input name="server" value="{{ raw.server or '' }}"></label>
+  <label>Usuario <input name="username" value="{{ raw.username or '' }}"></label>
+  <label>Senha <input name="password" type="password" placeholder="{{ config.password or '' }}"></label>
+  <label>PSK <input name="psk" type="password" placeholder="{{ config.psk or '' }}"></label>
+  <label>Interface criada <input name="interface" value="{{ raw.interface or 'ppp0' }}"></label>
+  <label>Rede remota <input name="remote_network" value="{{ raw.remote_network or '' }}"></label>
+  <label>Rotas pela VPN <textarea name="vpn_routes">{{ raw.vpn_routes or '' }}</textarea></label>
+  <button type="submit">Salvar</button>
+</form>
+<div class="actions">
+  <form method="post" action="/l2tp-ipsec/up"><button type="submit">Conectar</button></form>
+  <form method="post" action="/l2tp-ipsec/down"><button class="danger" type="submit">Desconectar</button></form>
+  <form method="post" action="/l2tp-ipsec/test"><button type="submit">Testar</button></form>
+</div>
+
+{% if last_action %}
+<h2>Ultimo resultado da conexao</h2>
+<p>
+  Acao: <strong>{{ last_action.action }}</strong>
+  | Horario: <code>{{ last_action.ran_at }}</code>
+  | Resultado: <span class="pill {{ 'ok' if last_action.ok else 'bad' }}">{{ 'ok' if last_action.ok else 'erro' }}</span>
+</p>
+{% for name, item in last_action.results.items() %}
+<h3>{{ name }}</h3>
+<pre>{{ item.command }}
+rc={{ item.returncode }}
+{{ item.stdout }}
+{{ item.stderr }}</pre>
+{% endfor %}
+{% endif %}
+
+{% if result %}<h2>Resultado do teste</h2><pre>{{ result.command }}
+rc={{ result.returncode }}
+{{ result.stdout }}
+{{ result.stderr }}</pre>{% endif %}
+
+<h2>Status e logs</h2>
+<div class="actions">
+  <a class="button-link" href="/l2tp-ipsec">Atualizar status</a>
+</div>
+
+<h3>IPsec statusall</h3>
+<pre>{{ diagnostics.ipsec_status.command }}
+rc={{ diagnostics.ipsec_status.returncode }}
+{{ diagnostics.ipsec_status.stdout }}
+{{ diagnostics.ipsec_status.stderr }}</pre>
+
+<h3>Interface L2TP/PPP</h3>
+<pre>{{ diagnostics.l2tp_interface.command }}
+rc={{ diagnostics.l2tp_interface.returncode }}
+{{ diagnostics.l2tp_interface.stdout }}
+{{ diagnostics.l2tp_interface.stderr }}</pre>
+
+<h3>Processos VPN</h3>
+<pre>{{ diagnostics.processes.command }}
+rc={{ diagnostics.processes.returncode }}
+{{ diagnostics.processes.stdout }}
+{{ diagnostics.processes.stderr }}</pre>
+
+<h3>Rotas</h3>
+<pre>{{ diagnostics.routes.stdout }}</pre>
+
+<h3>IPsec XFRM</h3>
+<pre>{{ diagnostics.xfrm_state.command }}
+rc={{ diagnostics.xfrm_state.returncode }}
+{{ diagnostics.xfrm_state.stdout }}
+{{ diagnostics.xfrm_state.stderr }}
+
+{{ diagnostics.xfrm_policy.command }}
+rc={{ diagnostics.xfrm_policy.returncode }}
+{{ diagnostics.xfrm_policy.stdout }}
+{{ diagnostics.xfrm_policy.stderr }}</pre>
+
+<h3>Logs recentes</h3>
+<pre>{{ diagnostics.logs.command }}
+rc={{ diagnostics.logs.returncode }}
+{{ diagnostics.logs.stdout }}
+{{ diagnostics.logs.stderr }}</pre>
+{% endblock %}

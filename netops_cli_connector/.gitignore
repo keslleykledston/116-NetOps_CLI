@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+
+config/ipsec/*
+!config/ipsec/.gitkeep
+config/runtime/*
+!config/runtime/.gitkeep
+config/wireguard/*
+!config/wireguard/.gitkeep

@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "opt" / "netops-cli"))
+sys.path.insert(0, "/opt/netops-cli")
+
+from app.services import diagnostics, firewall, routing, wireguard
+from app.services.heartbeat import send_once
+from app.services.status import get_status
+
+
+def print_result(result) -> int:
+    if isinstance(result, dict):
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok", True) else 1
+    print(result.command)
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print(result.stderr, file=sys.stderr)
+    return result.returncode
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(prog="netops-cli")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    sub.add_parser("status")
+    sub.add_parser("heartbeat")
+
+    wg = sub.add_parser("wg")
+    wg_sub = wg.add_subparsers(dest="wg_command", required=True)
+    wg_sub.add_parser("up")
+    wg_sub.add_parser("down")
+
+    routes = sub.add_parser("routes")
+    routes_sub = routes.add_subparsers(dest="routes_command", required=True)
+    routes_sub.add_parser("list")
+
+    nat = sub.add_parser("nat")
+    nat_sub = nat.add_subparsers(dest="nat_command", required=True)
+    nat_sub.add_parser("enable")
+    nat_sub.add_parser("disable")
+
+    test = sub.add_parser("test")
+    test_sub = test.add_subparsers(dest="test_command", required=True)
+    ping_cmd = test_sub.add_parser("ping")
+    ping_cmd.add_argument("host")
+    snmp_cmd = test_sub.add_parser("snmp")
+    snmp_cmd.add_argument("host")
+    snmp_cmd.add_argument("community")
+    udp_cmd = test_sub.add_parser("udp")
+    udp_cmd.add_argument("host")
+    udp_cmd.add_argument("port", nargs="?", default=161, type=int)
+
+    args = parser.parse_args()
+
+    if args.command == "status":
+        print(json.dumps(get_status(), indent=2))
+        return 0
+    if args.command == "heartbeat":
+        return print_result(send_once())
+    if args.command == "wg":
+        return print_result(wireguard.up() if args.wg_command == "up" else wireguard.down())
+    if args.command == "routes":
+        print(json.dumps({"configured": routing.configured_routes(), "system": routing.system_routes().stdout}, indent=2))
+        return 0
+    if args.command == "nat":
+        return print_result(firewall.enable_nat(firewall.get_nat()) if args.nat_command == "enable" else firewall.disable_nat())
+    if args.command == "test" and args.test_command == "ping":
+        return print_result(diagnostics.ping(args.host))
+    if args.command == "test" and args.test_command == "snmp":
+        return print_result(diagnostics.snmpwalk(args.host, args.community))
+    if args.command == "test" and args.test_command == "udp":
+        return print_result(diagnostics.udp_check(args.host, args.port))
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

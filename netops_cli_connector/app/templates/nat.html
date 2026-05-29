@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>NAT / Masquerade</h1>
+<p>Status: <span class="pill {{ 'ok' if nat.enabled else 'bad' }}">{{ 'ativo' if nat.enabled else 'inativo' }}</span></p>
+<form class="form-grid" method="post" action="/nat/enable">
+  <label>Interface origem/LAN <input name="in_interface" value="{{ nat.in_interface or '' }}" placeholder="eth0"></label>
+  <label>Interface saida/WAN/WireGuard/L2TP <input name="out_interface" value="{{ nat.out_interface or 'wg-netops' }}" required></label>
+  <label>Rede origem <input name="source_network" value="{{ nat.source_network or '10.10.0.0/16' }}" required></label>
+  <label class="checkbox"><input type="checkbox" name="enable_forwarding" {% if nat.enable_forwarding %}checked{% endif %}> Ativar forwarding IPv4</label>
+  <button type="submit">Ativar NAT</button>
+</form>
+<form class="inline-confirm" method="post" action="/nat/disable">
+  <input name="confirm" placeholder="Digite DISABLE" required>
+  <button class="danger" type="submit">Desativar NAT</button>
+</form>
+<h2>iptables NAT</h2>
+<pre>{{ firewall.iptables_nat.stdout }}{{ firewall.iptables_nat.stderr }}</pre>
+{% endblock %}

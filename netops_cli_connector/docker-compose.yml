@@ -1,0 +1,16 @@
+services:
+  netops_cli:
+    build: .
+    container_name: netops_cli_connector
+    restart: unless-stopped
+    env_file:
+      - .env
+    network_mode: host
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    volumes:
+      - ./config:/etc/netops-cli
+      - /etc/wireguard:/etc/wireguard
+      - /lib/modules:/lib/modules:ro

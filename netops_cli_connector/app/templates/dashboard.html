@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<section class="grid">
+  <div class="panel"><strong>Status geral</strong><span class="pill ok">{{ status.status }}</span></div>
+  <div class="panel"><strong>WAN detectada</strong><code>{{ status.wan_interface }}</code></div>
+  <div class="panel"><strong>LAN configurada</strong><code>{{ status.lan_interface }}</code></div>
+  <div class="panel"><strong>WireGuard</strong><span class="pill {{ 'ok' if status.wireguard_status == 'up' else 'bad' }}">{{ status.wireguard_status }}</span></div>
+  <div class="panel"><strong>L2TP/IPsec</strong><span class="pill {{ 'ok' if status.l2tp_ipsec_status == 'up' else 'bad' }}">{{ status.l2tp_ipsec_status }}</span></div>
+  <div class="panel"><strong>Rotas configuradas</strong><code>{{ status.routes_count }}</code></div>
+  <div class="panel"><strong>NAT</strong><span class="pill {{ 'ok' if status.nat_enabled else 'bad' }}">{{ 'ativo' if status.nat_enabled else 'inativo' }}</span></div>
+  <div class="panel"><strong>Ultimo heartbeat</strong><code>{{ status.last_heartbeat.sent_at or 'nunca' }}</code></div>
+</section>
+
+<h2>IPs locais</h2>
+<pre>{{ status.interfaces }}</pre>
+
+<h2>Rotas do sistema</h2>
+<pre>{{ status.system_routes }}</pre>
+
+<form method="post" action="/api/heartbeat">
+  <button type="submit">Enviar heartbeat agora</button>
+</form>
+{% endblock %}

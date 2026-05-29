@@ -179,6 +179,16 @@ def provision_with_token() -> dict[str, Any]:
         return _record_provision({"ok": False, "error": str(exc), "public_key": public_key})
 
     if not response.ok:
+        if response.status_code in {401, 403}:
+            return _record_provision(
+                {
+                    "ok": False,
+                    "status_code": response.status_code,
+                    "error": "Servidor NetOps recusou a autenticacao do token para provisionamento WireGuard.",
+                    "hint": "Confira se o token pertence a este conector e se a rota de provisionamento aceita Authorization: Bearer <token>.",
+                    "public_key": public_key,
+                }
+            )
         return _record_provision(
             {
                 "ok": False,

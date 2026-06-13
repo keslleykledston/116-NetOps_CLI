@@ -4,15 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login - NetOps CLI Connector</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=2.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body class="login-page">
   <form class="login-box" method="post" action="/login">
-    <h1>NetOps CLI Connector</h1>
-    {% if error %}<p class="error">{{ error }}</p>{% endif %}
-    <label>Usuario <input name="username" autocomplete="username" required></label>
-    <label>Senha <input name="password" type="password" autocomplete="current-password" required></label>
-    <button type="submit">Entrar</button>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+      <div style="width: 48px; height: 48px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+        <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h1>NetOps CLI</h1>
+      <p style="color: var(--muted); font-size: 13px; text-align: center; margin-top: -16px;">Conector de Operações de Rede</p>
+    </div>
+
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <label>
+      Usuário
+      <input name="username" autocomplete="username" placeholder="Digite seu usuário" required autofocus>
+    </label>
+    
+    <label>
+      Senha
+      <input name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+    </label>
+    
+    <button type="submit" style="margin-top: 8px;">Entrar no Painel</button>
   </form>
 </body>
 </html>

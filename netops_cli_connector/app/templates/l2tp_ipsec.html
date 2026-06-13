@@ -1,116 +1,253 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>LAN / L2TP + IPsec</h1>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+  <div>
+    <h1 style="margin-bottom: 8px;">
+      <svg style="width: 28px; height: 28px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+      LAN / L2TP + IPsec
+    </h1>
+    <p style="margin: 0; display: flex; align-items: center; gap: 8px;">
+      Conexão de rede local segura legada
+    </p>
+  </div>
+  
+  <div class="actions" style="margin: 0;">
+    <form method="post" action="/l2tp-ipsec/up">
+      <button type="submit">
+        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 18l6-6-6-6"/></svg>
+        Conectar
+      </button>
+    </form>
+    <form method="post" action="/l2tp-ipsec/down">
+      <button class="danger" type="submit">
+        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+        Desconectar
+      </button>
+    </form>
+    <form method="post" action="/l2tp-ipsec/test">
+      <button type="submit" style="background: var(--bg-sidebar); border-color: var(--line); color: var(--text);">
+        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Testar Link
+      </button>
+    </form>
+  </div>
+</div>
+
 <section class="grid">
-  <div class="panel"><strong>Status PPP</strong><span class="pill {{ 'ok' if status == 'up' else 'bad' }}">{{ status }}</span></div>
-  <div class="panel"><strong>Interface</strong><code>{{ raw.interface or 'ppp0' }}</code></div>
-  <div class="panel"><strong>IPsec</strong><span class="pill {{ 'ok' if 'ESTABLISHED' in diagnostics.ipsec_status.stdout or 'INSTALLED' in diagnostics.ipsec_status.stdout else 'bad' }}">{{ 'ativo' if 'ESTABLISHED' in diagnostics.ipsec_status.stdout or 'INSTALLED' in diagnostics.ipsec_status.stdout else 'inativo/erro' }}</span></div>
-  <div class="panel"><strong>Ultima acao</strong><span class="pill {{ 'ok' if last_action.ok else 'bad' }}">{{ last_action.action or 'nenhuma' }}</span></div>
+  <div class="panel">
+    <strong>Status PPP</strong>
+    <span class="pill {{ 'ok' if status == 'up' else 'bad' }}">{{ status }}</span>
+  </div>
+  <div class="panel">
+    <strong>Interface L2TP</strong>
+    <code>{{ raw.interface or 'ppp0' }}</code>
+  </div>
+  <div class="panel">
+    <strong>IPsec</strong>
+    <span class="pill {{ 'ok' if 'ESTABLISHED' in diagnostics.ipsec_status.stdout or 'INSTALLED' in diagnostics.ipsec_status.stdout else 'bad' }}">
+      {{ 'ativo' if 'ESTABLISHED' in diagnostics.ipsec_status.stdout or 'INSTALLED' in diagnostics.ipsec_status.stdout else 'inativo' }}
+    </span>
+  </div>
+  <div class="panel">
+    <strong>Última Ação</strong>
+    <span class="pill {{ 'ok' if last_action.ok else 'bad' }}">{{ last_action.action or 'nenhuma' }}</span>
+  </div>
 </section>
 
-<form class="form-grid" method="post" action="/l2tp-ipsec/save">
-  <label>Servidor VPN remoto <input name="server" value="{{ raw.server or '' }}"></label>
-  <label>IP local IPsec <input name="local_address" value="{{ raw.local_address or '' }}" placeholder="%defaultroute"></label>
-  <label>ID local IPsec <input name="local_id" value="{{ raw.local_id or '' }}" placeholder="deixe vazio para Mikrotik"></label>
-  <label>Propostas IKE <input name="ike_proposals" value="{{ raw.ike_proposals or '' }}" placeholder="auto: aes128-sha1-modp2048,3des-sha1-modp2048"></label>
-  <label>Propostas ESP <input name="esp_proposals" value="{{ raw.esp_proposals or '' }}" placeholder="auto: aes128-sha1-modp1024 + pfs"></label>
-  <label>Usuario <input name="username" value="{{ raw.username or '' }}"></label>
-  <label>Senha <input name="password" type="password" placeholder="{{ config.password or '' }}"></label>
-  <label>PSK <input name="psk" type="password" placeholder="{{ config.psk or '' }}"></label>
-  <label>Interface criada <input name="interface" value="{{ raw.interface or 'ppp0' }}"></label>
-  <label>Rede remota <input name="remote_network" value="{{ raw.remote_network or '' }}"></label>
-  <label>Rotas pela VPN <textarea name="vpn_routes">{{ raw.vpn_routes or '' }}</textarea></label>
-  <button type="submit">Salvar</button>
-</form>
-<div class="actions">
-  <form method="post" action="/l2tp-ipsec/up"><button type="submit">Conectar</button></form>
-  <form method="post" action="/l2tp-ipsec/down"><button class="danger" type="submit">Desconectar</button></form>
-  <form method="post" action="/l2tp-ipsec/test"><button type="submit">Testar</button></form>
-</div>
-
 {% if last_action %}
-<h2>Ultimo resultado da conexao</h2>
-<p>
-  Acao: <strong>{{ last_action.action }}</strong>
-  | Horario: <code>{{ last_action.ran_at }}</code>
-  | Resultado: <span class="pill {{ 'ok' if last_action.ok else 'bad' }}">{{ 'ok' if last_action.ok else 'erro' }}</span>
-</p>
-{% for name, item in last_action.results.items() %}
-<h3>{{ name }}</h3>
-<pre>{{ item.command }}
-rc={{ item.returncode }}
-{{ item.stdout }}
-{{ item.stderr }}</pre>
-{% endfor %}
+  <h2>Último Resultado da Conexão</h2>
+  <div class="alert-info" style="display: flex; flex-direction: column; gap: 8px; border-left: 4px solid var(--primary); margin-bottom: 24px;">
+    <div>Ação: <strong>{{ last_action.action }}</strong> | Executado em: <code>{{ last_action.ran_at }}</code></div>
+    <div>Resultado: <span class="pill {{ 'ok' if last_action.ok else 'bad' }}">{{ 'sucesso' if last_action.ok else 'erro' }}</span></div>
+  </div>
+  
+  {% for name, item in last_action.results.items() %}
+    <div class="console-container">
+      <div class="console-header">
+        <span class="console-dot red"></span>
+        <span class="console-dot yellow"></span>
+        <span class="console-dot green"></span>
+        <span class="console-title">{{ name }} (rc={{ item.returncode }})</span>
+      </div>
+      <pre>Command: {{ item.command }}
+{{ item.stdout }}{{ item.stderr }}</pre>
+    </div>
+  {% endfor %}
 {% endif %}
 
-{% if result %}<h2>Resultado do teste</h2><pre>{{ result.command }}
-rc={{ result.returncode }}
-{{ result.stdout }}
-{{ result.stderr }}</pre>{% endif %}
+{% if result %}
+  <h2>Resultado do Teste de Conectividade</h2>
+  <div class="console-container">
+    <div class="console-header">
+      <span class="console-dot red"></span>
+      <span class="console-dot yellow"></span>
+      <span class="console-dot green"></span>
+      <span class="console-title">ping/diagnose result (rc={{ result.returncode }})</span>
+    </div>
+    <pre>Command: {{ result.command }}
+{{ result.stdout }}{{ result.stderr }}</pre>
+  </div>
+{% endif %}
 
-<h2>Status e logs</h2>
-<div class="actions">
-  <a class="button-link" href="/l2tp-ipsec">Atualizar status</a>
+<h2>Configuração L2TP/IPsec (strongSwan)</h2>
+<form class="form-grid" method="post" action="/l2tp-ipsec/save" style="margin-bottom: 36px;">
+  <label>
+    Servidor VPN Remoto (IP/Host)
+    <input name="server" value="{{ raw.server or '' }}" placeholder="Ex: vpn.seudominio.com" required>
+  </label>
+  
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <label>
+      IP Local IPsec
+      <input name="local_address" value="{{ raw.local_address or '' }}" placeholder="%defaultroute">
+    </label>
+    
+    <label>
+      ID Local IPsec
+      <input name="local_id" value="{{ raw.local_id or '' }}" placeholder="Opcional (Ex: Mikrotik)">
+    </label>
+  </div>
+  
+  <label>
+    Propostas IKE (Fase 1)
+    <input name="ike_proposals" value="{{ raw.ike_proposals or '' }}" placeholder="Ex: aes128-sha1-modp2048,3des-sha1-modp2048">
+  </label>
+  
+  <label>
+    Propostas ESP (Fase 2)
+    <input name="esp_proposals" value="{{ raw.esp_proposals or '' }}" placeholder="Ex: aes128-sha1-modp1024 + pfs">
+  </label>
+  
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <label>
+      Nome de Usuário
+      <input name="username" value="{{ raw.username or '' }}" placeholder="VPN username" required>
+    </label>
+    
+    <label>
+      Interface Criada
+      <input name="interface" value="{{ raw.interface or 'ppp0' }}" placeholder="ppp0" required>
+    </label>
+  </div>
+  
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <label>
+      Senha L2TP
+      <input name="password" type="password" placeholder="{{ '••••••••' if config.password else 'Nova senha L2TP' }}">
+    </label>
+    
+    <label>
+      Pre-Shared Key (PSK IPsec)
+      <input name="psk" type="password" placeholder="{{ '••••••••' if config.psk else 'Nova PSK IPsec' }}">
+    </label>
+  </div>
+  
+  <label>
+    Rede Remota
+    <input name="remote_network" value="{{ raw.remote_network or '' }}" placeholder="Ex: 192.168.0.0/16">
+  </label>
+  
+  <label>
+    Rotas adicionais pela VPN (Uma por linha)
+    <textarea name="vpn_routes" placeholder="Ex:&#10;10.150.0.0/24&#10;172.16.88.0/24">{{ raw.vpn_routes or '' }}</textarea>
+  </label>
+  
+  <button type="submit">Salvar Configurações</button>
+</form>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+  <h2 style="margin: 0; border: none; padding: 0;">Diagnósticos e Logs em Tempo Real</h2>
+  <a class="button-link" href="/l2tp-ipsec" style="font-size: 13px; padding: 6px 12px; background: var(--bg-sidebar); border-color: var(--line); color: var(--text);">
+    <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+    Atualizar Status
+  </a>
 </div>
 
-<h3>IPsec statusall</h3>
-<pre>{{ diagnostics.ipsec_status.command }}
-rc={{ diagnostics.ipsec_status.returncode }}
-{{ diagnostics.ipsec_status.stdout }}
-{{ diagnostics.ipsec_status.stderr }}</pre>
+<div class="console-container">
+  <div class="console-header">
+    <span class="console-dot red"></span>
+    <span class="console-dot yellow"></span>
+    <span class="console-dot green"></span>
+    <span class="console-title">strongSwan IPsec Status (statusall)</span>
+  </div>
+  <pre>{{ diagnostics.ipsec_status.stdout }}{{ diagnostics.ipsec_status.stderr }}</pre>
+</div>
 
-<h3>Interface L2TP/PPP</h3>
-<pre>{{ diagnostics.l2tp_interface.command }}
-rc={{ diagnostics.l2tp_interface.returncode }}
-{{ diagnostics.l2tp_interface.stdout }}
-{{ diagnostics.l2tp_interface.stderr }}</pre>
+<div class="console-container">
+  <div class="console-header">
+    <span class="console-dot red"></span>
+    <span class="console-dot yellow"></span>
+    <span class="console-dot green"></span>
+    <span class="console-title">Interface L2TP/PPP (ip addr show)</span>
+  </div>
+  <pre>{{ diagnostics.l2tp_interface.stdout }}{{ diagnostics.l2tp_interface.stderr }}</pre>
+</div>
 
-<h3>Processos VPN</h3>
-<pre>{{ diagnostics.processes.command }}
-rc={{ diagnostics.processes.returncode }}
-{{ diagnostics.processes.stdout }}
-{{ diagnostics.processes.stderr }}</pre>
+<div class="console-container">
+  <div class="console-header">
+    <span class="console-dot red"></span>
+    <span class="console-dot yellow"></span>
+    <span class="console-dot green"></span>
+    <span class="console-title">Processos Ativos (xl2tpd, charon, pppd)</span>
+  </div>
+  <pre>{{ diagnostics.processes.stdout }}{{ diagnostics.processes.stderr }}</pre>
+</div>
 
-<h3>Rota ate o servidor</h3>
-<pre>{{ diagnostics.server_route.command }}
-rc={{ diagnostics.server_route.returncode }}
-{{ diagnostics.server_route.stdout }}
-{{ diagnostics.server_route.stderr }}</pre>
+<div class="console-container">
+  <div class="console-header">
+    <span class="console-dot red"></span>
+    <span class="console-dot yellow"></span>
+    <span class="console-dot green"></span>
+    <span class="console-title">Rotas até o Servidor VPN</span>
+  </div>
+  <pre>{{ diagnostics.server_route.stdout }}{{ diagnostics.server_route.stderr }}</pre>
+</div>
 
-<h3>UDP do servidor VPN</h3>
-<pre>{{ diagnostics.udp_500.command }}
-rc={{ diagnostics.udp_500.returncode }}
-{{ diagnostics.udp_500.stdout }}
-{{ diagnostics.udp_500.stderr }}
+<div class="console-container">
+  <div class="console-header">
+    <span class="console-dot red"></span>
+    <span class="console-dot yellow"></span>
+    <span class="console-dot green"></span>
+    <span class="console-title">Verificação de UDP Portas 500, 4500 e 1701</span>
+  </div>
+  <pre>Porta 500 (ISAKMP):
+{{ diagnostics.udp_500.stdout }}{{ diagnostics.udp_500.stderr }}
+Porta 4500 (NAT-T):
+{{ diagnostics.udp_4500.stdout }}{{ diagnostics.udp_4500.stderr }}
+Porta 1701 (L2TP):
+{{ diagnostics.udp_1701.stdout }}{{ diagnostics.udp_1701.stderr }}</pre>
+</div>
 
-{{ diagnostics.udp_4500.command }}
-rc={{ diagnostics.udp_4500.returncode }}
-{{ diagnostics.udp_4500.stdout }}
-{{ diagnostics.udp_4500.stderr }}
+<div class="console-container">
+  <div class="console-header">
+    <span class="console-dot red"></span>
+    <span class="console-dot yellow"></span>
+    <span class="console-dot green"></span>
+    <span class="console-title">Tabela de Roteamento IP</span>
+  </div>
+  <pre>{{ diagnostics.routes.stdout }}</pre>
+</div>
 
-{{ diagnostics.udp_1701.command }}
-rc={{ diagnostics.udp_1701.returncode }}
-{{ diagnostics.udp_1701.stdout }}
-{{ diagnostics.udp_1701.stderr }}</pre>
+<div class="console-container">
+  <div class="console-header">
+    <span class="console-dot red"></span>
+    <span class="console-dot yellow"></span>
+    <span class="console-dot green"></span>
+    <span class="console-title">Políticas e Estados IPsec XFRM</span>
+  </div>
+  <pre>IPsec XFRM State:
+{{ diagnostics.xfrm_state.stdout }}{{ diagnostics.xfrm_state.stderr }}
+IPsec XFRM Policy:
+{{ diagnostics.xfrm_policy.stdout }}{{ diagnostics.xfrm_policy.stderr }}</pre>
+</div>
 
-<h3>Rotas</h3>
-<pre>{{ diagnostics.routes.stdout }}</pre>
-
-<h3>IPsec XFRM</h3>
-<pre>{{ diagnostics.xfrm_state.command }}
-rc={{ diagnostics.xfrm_state.returncode }}
-{{ diagnostics.xfrm_state.stdout }}
-{{ diagnostics.xfrm_state.stderr }}
-
-{{ diagnostics.xfrm_policy.command }}
-rc={{ diagnostics.xfrm_policy.returncode }}
-{{ diagnostics.xfrm_policy.stdout }}
-{{ diagnostics.xfrm_policy.stderr }}</pre>
-
-<h3>Logs recentes</h3>
-<pre>{{ diagnostics.logs.command }}
-rc={{ diagnostics.logs.returncode }}
-{{ diagnostics.logs.stdout }}
-{{ diagnostics.logs.stderr }}</pre>
+<div class="console-container">
+  <div class="console-header">
+    <span class="console-dot red"></span>
+    <span class="console-dot yellow"></span>
+    <span class="console-dot green"></span>
+    <span class="console-title">Logs de Sistema Recentes (syslog/journal)</span>
+  </div>
+  <pre>{{ diagnostics.logs.stdout }}{{ diagnostics.logs.stderr }}</pre>
+</div>
 {% endblock %}

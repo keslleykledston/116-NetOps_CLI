@@ -1,18 +1,73 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>NAT / Masquerade</h1>
-<p>Status: <span class="pill {{ 'ok' if nat.enabled else 'bad' }}">{{ 'ativo' if nat.enabled else 'inativo' }}</span></p>
-<form class="form-grid" method="post" action="/nat/enable">
-  <label>Interface origem/LAN <input name="in_interface" value="{{ nat.in_interface or '' }}" placeholder="eth0"></label>
-  <label>Interface saida/WAN/WireGuard/L2TP <input name="out_interface" value="{{ nat.out_interface or 'wg-netops' }}" required></label>
-  <label>Rede origem <input name="source_network" value="{{ nat.source_network or '10.10.0.0/16' }}" required></label>
-  <label class="checkbox"><input type="checkbox" name="enable_forwarding" {% if nat.enable_forwarding %}checked{% endif %}> Ativar forwarding IPv4</label>
-  <button type="submit">Ativar NAT</button>
-</form>
-<form class="inline-confirm" method="post" action="/nat/disable">
-  <input name="confirm" placeholder="Digite DISABLE" required>
-  <button class="danger" type="submit">Desativar NAT</button>
-</form>
-<h2>iptables NAT</h2>
-<pre>{{ firewall.iptables_nat.stdout }}{{ firewall.iptables_nat.stderr }}</pre>
+<h1>
+  <svg style="width: 28px; height: 28px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
+  NAT / Masquerade
+</h1>
+<p style="margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
+  Status do NAT: 
+  <span class="pill {{ 'ok' if nat.enabled else 'bad' }}">{{ 'ativo' if nat.enabled else 'inativo' }}</span>
+</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+  <div>
+    <h2 style="margin-top: 0;">Ativar NAT / Masquerade</h2>
+    <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">
+      Configura o mascaramento de IP (NAT) das redes locais para permitir a saída de tráfego de dados pelas interfaces externas de VPN.
+    </p>
+    <form class="form-grid" style="grid-template-columns: 1fr; margin-bottom: 0;" method="post" action="/nat/enable">
+      <label>
+        Interface de Origem (LAN)
+        <input name="in_interface" value="{{ nat.in_interface or '' }}" placeholder="Ex: eth0 (deixe em branco para todas)">
+      </label>
+      
+      <label>
+        Interface de Saída (WAN / VPN)
+        <input name="out_interface" value="{{ nat.out_interface or 'wg-netops' }}" required placeholder="Ex: wg-netops">
+      </label>
+      
+      <label>
+        Rede de Origem (Subrede LAN)
+        <input name="source_network" value="{{ nat.source_network or '10.10.0.0/16' }}" required placeholder="Ex: 10.10.0.0/16">
+      </label>
+      
+      <label class="checkbox" style="margin-top: 8px;">
+        <input type="checkbox" name="enable_forwarding" {% if nat.enable_forwarding %}checked{% endif %}>
+        Ativar Forwarding de Pacotes IPv4 no Host OS
+      </label>
+      
+      <button type="submit">Ativar Regras de NAT</button>
+    </form>
+  </div>
+
+  <div>
+    <h2 style="margin-top: 0;">Desativar NAT</h2>
+    <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">
+      Remove as regras de Masquerade da tabela NAT do iptables relacionadas à interface configurada.
+    </p>
+    <div class="form-grid" style="grid-template-columns: 1fr; border-color: rgba(239, 68, 68, 0.15); background: rgba(239, 68, 68, 0.02);">
+      <div style="font-size: 13px; color: #f87171; font-weight: 500; margin-bottom: 8px; line-height: 1.4;">
+        Atenção: Ao desativar o NAT, os hosts na rede interna perderão a conectividade com a rede de trânsito até que o NAT seja reabilitado.
+      </div>
+      <form method="post" action="/nat/disable" style="display: flex; flex-direction: column; gap: 12px; margin: 0;">
+        <label>
+          Confirmação de Desativação
+          <input name="confirm" placeholder="Digite DISABLE para confirmar" required style="border-color: rgba(239, 68, 68, 0.25);">
+        </label>
+        <button class="danger" type="submit" style="width: 100%;">Desativar NAT do Sistema</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<h2>Regras Ativas na Tabela iptables (NAT)</h2>
+<div class="console-container" style="margin-top: 16px;">
+  <div class="console-header">
+    <span class="console-dot red"></span>
+    <span class="console-dot yellow"></span>
+    <span class="console-dot green"></span>
+    <span class="console-title">iptables -t nat -S / iptables -t nat -vnL</span>
+  </div>
+  <pre>{{ firewall.iptables_nat.stdout }}{{ firewall.iptables_nat.stderr }}</pre>
+</div>
 {% endblock %}

@@ -1,83 +1,202 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>WAN / WireGuard</h1>
-<p>Status: <span class="pill {{ 'ok' if status == 'up' else 'bad' }}">{{ status }}</span></p>
-<section class="grid">
-  <div class="panel"><strong>Provisionamento</strong><span class="pill {{ 'ok' if raw.provisioned else 'bad' }}">{{ 'via token' if raw.provisioned else 'manual/pendente' }}</span></div>
-  <div class="panel"><strong>Public Key local</strong><code>{{ client_public_key or 'sera gerada no provisionamento' }}</code></div>
-  <div class="panel"><strong>Ultima provisao</strong><span class="pill {{ 'ok' if last_provision.ok else 'bad' }}">{{ 'ok' if last_provision.ok else ('erro' if last_provision else 'nunca') }}</span></div>
-</section>
-
-<h2>Estatisticas</h2>
-{% if wireguard_stats.interfaces %}
-<section class="grid">
-  {% for iface in wireguard_stats.interfaces %}
-  <div class="panel"><strong>Interface</strong><code>{{ iface.interface }}</code></div>
-  <div class="panel"><strong>Peers</strong><code>{{ iface.peers_count }}</code></div>
-  <div class="panel"><strong>Porta</strong><code>{{ iface.listening_port or 'n/a' }}</code></div>
-  {% endfor %}
-</section>
-<table>
-  <thead>
-    <tr>
-      <th>Peer</th>
-      <th>Endpoint</th>
-      <th>Allowed IPs</th>
-      <th>Handshake</th>
-      <th>RX</th>
-      <th>TX</th>
-      <th>Keepalive</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for iface in wireguard_stats.interfaces %}
-      {% for peer in iface.peers %}
-      <tr>
-        <td><code>{{ peer.public_key }}</code></td>
-        <td><code>{{ peer.endpoint }}</code></td>
-        <td><code>{{ peer.allowed_ips }}</code></td>
-        <td><code>{{ peer.latest_handshake }}</code></td>
-        <td><code>{{ peer.transfer_rx }}</code></td>
-        <td><code>{{ peer.transfer_tx }}</code></td>
-        <td><code>{{ peer.persistent_keepalive }}</code></td>
-      </tr>
-      {% endfor %}
-    {% endfor %}
-  </tbody>
-</table>
-{% else %}
-<p class="muted">Nenhuma interface WireGuard ativa no momento.</p>
-{% endif %}
-
-<h2>Provisionamento via token</h2>
-<form class="form-grid" method="post" action="/wireguard/provision">
-  <label>Nome do conector <input name="connector_name" value="{{ provision_settings.connector_name or '' }}" placeholder="4WNET_BVA"></label>
-  <label>URL do NetOps Server <input name="netops_server_url" value="{{ provision_settings.netops_server_url or '' }}" placeholder="https://netops.seudominio.com"></label>
-  <label>Caminho da API <input name="provision_path" value="{{ provision_settings.provision_path or '/api/connectors/wireguard/provision' }}"></label>
-  <label>Token do conector <input name="connector_token" type="password" placeholder="{{ provision_settings.connector_token or 'cole o token fornecido pelo servidor' }}"></label>
-  <button type="submit">Provisionar via token</button>
-</form>
-<form class="form-grid" method="post" action="/wireguard/save">
-  <label>Endpoint do NetOps Server <input name="endpoint" value="{{ raw.endpoint or '' }}"></label>
-  <label>Porta <input name="port" value="{{ raw.port or '51820' }}"></label>
-  <label>Private Key local <input name="private_key" type="password" placeholder="{{ config.private_key or '' }}"></label>
-  <label>Public Key do servidor <input name="server_public_key" value="{{ raw.server_public_key or '' }}"></label>
-  <label>Allowed IPs <input name="allowed_ips" value="{{ raw.allowed_ips or '10.255.0.1/32, 10.200.0.0/16' }}"></label>
-  <label>IP local do tunel <input name="tunnel_ip" value="{{ raw.tunnel_ip or '10.255.0.2/30' }}"></label>
-  <label>Keepalive <input name="keepalive" value="{{ raw.keepalive or '25' }}"></label>
-  <button type="submit">Salvar configuracao</button>
-</form>
-<div class="actions">
-  <form method="post" action="/wireguard/up"><button type="submit">Conectar</button></form>
-  <form method="post" action="/wireguard/down"><button class="danger" type="submit">Desconectar</button></form>
-  <form method="post" action="/wireguard/test"><button type="submit">Testar tunel</button></form>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+  <div>
+    <h1 style="margin-bottom: 8px;">
+      <svg style="width: 28px; height: 28px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      WAN / WireGuard
+    </h1>
+    <p style="margin: 0; display: flex; align-items: center; gap: 8px;">
+      Status do túnel: 
+      <span class="pill {{ 'ok' if status == 'up' else 'bad' }}">{{ status }}</span>
+    </p>
+  </div>
+  
+  <div class="actions" style="margin: 0;">
+    <form method="post" action="/wireguard/up">
+      <button type="submit">
+        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 18l6-6-6-6"/></svg>
+        Conectar
+      </button>
+    </form>
+    <form method="post" action="/wireguard/down">
+      <button class="danger" type="submit">
+        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+        Desconectar
+      </button>
+    </form>
+    <form method="post" action="/wireguard/test">
+      <button type="submit" style="background: var(--bg-sidebar); border-color: var(--line); color: var(--text);">
+        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Testar Túnel
+      </button>
+    </form>
+  </div>
 </div>
+
+<section class="grid">
+  <div class="panel">
+    <strong>Método de Provisionamento</strong>
+    <span class="pill {{ 'ok' if raw.provisioned else 'bad' }}">{{ 'via token' if raw.provisioned else 'manual/pendente' }}</span>
+  </div>
+  <div class="panel">
+    <strong>Chave Pública Local</strong>
+    <code style="font-size: 11px;">{{ client_public_key or 'Pendente (gerada no provisionamento)' }}</code>
+  </div>
+  <div class="panel">
+    <strong>Última Sincronização</strong>
+    <span class="pill {{ 'ok' if last_provision.ok else 'bad' }}">{{ 'sucesso' if last_provision.ok else ('falha' if last_provision else 'nunca sincronizado') }}</span>
+  </div>
+</section>
+
 {% if last_provision %}
-<h2>Resultado do provisionamento</h2>
-{% if last_provision.ran_at %}<p>Horario: <code>{{ last_provision.ran_at }}</code></p>{% endif %}
-{% if last_provision.error %}<p class="error">{{ last_provision.error }}</p>{% endif %}
-{% if last_provision.hint %}<p>{{ last_provision.hint }}</p>{% endif %}
-<pre>{{ last_provision }}</pre>
+  <h2>Resultado do Último Provisionamento</h2>
+  <div class="alert-info" style="display: flex; flex-direction: column; gap: 8px; border-left: 4px solid var(--primary);">
+    {% if last_provision.ran_at %}<div>Executado em: <code>{{ last_provision.ran_at }}</code></div>{% endif %}
+    {% if last_provision.error %}<div class="error" style="border: none; background: none; padding: 0;">Erro: {{ last_provision.error }}</div>{% endif %}
+    {% if last_provision.hint %}<div>Sugestão: <strong>{{ last_provision.hint }}</strong></div>{% endif %}
+  </div>
+  <pre style="max-height: 200px;">{{ last_provision }}</pre>
 {% endif %}
-{% if result %}<h2>Resultado</h2><pre>{{ result.stdout }}{{ result.stderr }}</pre>{% endif %}
+
+{% if result %}
+  <h2>Resultado do Teste de Conexão</h2>
+  <pre>{{ result.stdout }}{{ result.stderr }}</pre>
+{% endif %}
+
+<h2>Estatísticas e Conexões Ativas</h2>
+{% if wireguard_stats.interfaces %}
+  <section class="grid">
+    {% for iface in wireguard_stats.interfaces %}
+    <div class="panel" style="border-left: 3px solid var(--ok);">
+      <strong>Interface ativa</strong>
+      <code>{{ iface.interface }}</code>
+    </div>
+    <div class="panel">
+      <strong>Peers conectados</strong>
+      <code>{{ iface.peers_count }}</code>
+    </div>
+    <div class="panel">
+      <strong>Porta de escuta</strong>
+      <code>{{ iface.listening_port or 'n/a' }}</code>
+    </div>
+    {% endfor %}
+  </section>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Peer remoto (Public Key)</th>
+          <th>Endpoint IP</th>
+          <th>Allowed IPs</th>
+          <th>Último Handshake</th>
+          <th>Bytes Recebidos (RX)</th>
+          <th>Bytes Enviados (TX)</th>
+          <th>Keepalive</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for iface in wireguard_stats.interfaces %}
+          {% for peer in iface.peers %}
+          <tr>
+            <td><code style="font-size: 11px;">{{ peer.public_key[:12] }}...{{ peer.public_key[-12:] }}</code></td>
+            <td><code>{{ peer.endpoint }}</code></td>
+            <td><code>{{ peer.allowed_ips }}</code></td>
+            <td>{{ peer.latest_handshake }}</td>
+            <td style="color: var(--ok);">{{ peer.transfer_rx }}</td>
+            <td style="color: var(--primary);">{{ peer.transfer_tx }}</td>
+            <td><code>{{ peer.persistent_keepalive }}</code></td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert-info" style="background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.15); color: #f87171; margin-bottom: 32px;">
+    Nenhuma interface WireGuard ativa detectada no host. Clique em "Conectar" acima para subir o túnel.
+  </div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; margin-top: 36px;">
+  <div>
+    <h2 style="margin-top: 0;">Provisionamento via Token</h2>
+    <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">
+      Insira as credenciais fornecidas pelo NetOps Server para automatizar a geração de chaves e o registro da VPN.
+    </p>
+    <form class="form-grid" style="grid-template-columns: 1fr; margin-bottom: 0;" method="post" action="/wireguard/provision">
+      <label>
+        Nome do conector
+        <input name="connector_name" value="{{ provision_settings.connector_name or '' }}" placeholder="Ex: 4WNET_BVA" required>
+      </label>
+      
+      <label>
+        URL do NetOps Server
+        <input name="netops_server_url" value="{{ provision_settings.netops_server_url or '' }}" placeholder="Ex: https://netops.seudominio.com" required>
+      </label>
+      
+      <label>
+        Caminho da API
+        <input name="provision_path" value="{{ provision_settings.provision_path or '/api/connectors/wireguard/provision' }}" required>
+      </label>
+      
+      <label>
+        Token do conector
+        <input name="connector_token" type="password" placeholder="{{ 'Token já configurado' if provision_settings.connector_token else 'Insira o token do conector' }}">
+      </label>
+      
+      <button type="submit">Provisionar via token</button>
+    </form>
+  </div>
+
+  <div>
+    <h2 style="margin-top: 0;">Configuração Manual (Avançado)</h2>
+    <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">
+      Caso prefira, configure manualmente os parâmetros de conexão do túnel WireGuard do NetOps.
+    </p>
+    <form class="form-grid" style="grid-template-columns: 1fr; margin-bottom: 0;" method="post" action="/wireguard/save">
+      <label>
+        Endpoint do NetOps Server (IP/Host)
+        <input name="endpoint" value="{{ raw.endpoint or '' }}" placeholder="Ex: 200.100.50.25">
+      </label>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <label>
+          Porta WireGuard
+          <input name="port" value="{{ raw.port or '51820' }}" placeholder="51820">
+        </label>
+        
+        <label>
+          Keepalive (s)
+          <input name="keepalive" value="{{ raw.keepalive or '25' }}" placeholder="25">
+        </label>
+      </div>
+
+      <label>
+        Private Key local
+        <input name="private_key" type="password" placeholder="Chave privada local (em branco para manter)">
+      </label>
+      
+      <label>
+        Public Key do servidor
+        <input name="server_public_key" value="{{ raw.server_public_key or '' }}" placeholder="Chave pública do servidor NetOps">
+      </label>
+      
+      <label>
+        IP local do túnel
+        <input name="tunnel_ip" value="{{ raw.tunnel_ip or '10.255.0.2/30' }}" placeholder="Ex: 10.255.0.2/30">
+      </label>
+      
+      <label>
+        Allowed IPs (Rotas)
+        <input name="allowed_ips" value="{{ raw.allowed_ips or '10.255.0.1/32, 10.200.0.0/16' }}" placeholder="Ex: 10.255.0.1/32, 10.200.0.0/16">
+      </label>
+      
+      <button type="submit" style="background: var(--bg-sidebar); border-color: var(--line); color: var(--text);">
+        Salvar configurações
+      </button>
+    </form>
+  </div>
+</div>
 {% endblock %}

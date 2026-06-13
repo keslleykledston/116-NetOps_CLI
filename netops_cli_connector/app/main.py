@@ -12,6 +12,7 @@ from app.config import settings
 from app.routes import api, dashboard, diagnostics, l2tp_ipsec, nat, routes, wireguard
 from app.security import redirect_after_login
 from app.services import heartbeat
+from app.services import job_poll
 
 
 settings.ensure_dirs()
@@ -30,9 +31,23 @@ app.include_router(diagnostics.router)
 app.include_router(api.router)
 
 
+async def _bootstrap_network() -> None:
+    """Restore L2TP and static routes after container restart (host network mode)."""
+    await asyncio.sleep(2)
+    from app.services import l2tp_ipsec, routing
+
+    if l2tp_ipsec.get_config():
+        await asyncio.to_thread(l2tp_ipsec.up)
+        await asyncio.sleep(8)
+    await asyncio.to_thread(routing.apply_all)
+
+
 @app.on_event("startup")
-async def start_heartbeat() -> None:
+async def start_background_tasks() -> None:
+    asyncio.create_task(_bootstrap_network())
     asyncio.create_task(heartbeat.loop())
+    if settings.job_poll_enabled:
+        asyncio.create_task(job_poll.loop())
 
 
 @app.get("/login", response_class=HTMLResponse)

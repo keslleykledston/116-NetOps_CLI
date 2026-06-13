@@ -5,8 +5,8 @@ import asyncio
 import requests
 
 from app.config import settings
+from app.services.netops_credentials import credentials_configured, resolve_netops_credentials
 from app.services.status import get_status, record_heartbeat
-from app.services.wireguard import get_provision_settings
 
 
 def payload() -> dict:
@@ -24,23 +24,16 @@ def payload() -> dict:
 
 
 def send_once() -> dict:
-    provision_settings = get_provision_settings()
-    netops_server_url = str(provision_settings.get("netops_server_url") or settings.netops_server_url).rstrip("/")
-    connector_token = str(provision_settings.get("connector_token") or settings.connector_token)
-    if not netops_server_url or not connector_token:
+    if not credentials_configured():
         result = {"ok": False, "error": "NETOPS_SERVER_URL or CONNECTOR_TOKEN not configured"}
         record_heartbeat(result)
         return result
-    if "netops.example.com" in netops_server_url:
-        result = {"ok": False, "error": "NETOPS_SERVER_URL still uses the netops.example.com placeholder"}
-        record_heartbeat(result)
-        return result
-    url = f"{netops_server_url}/api/connectors/heartbeat"
+    url, token = resolve_netops_credentials()
     try:
         response = requests.post(
-            url,
+            f"{url}/api/connectors/heartbeat",
             json=payload(),
-            headers={"Authorization": f"Bearer {connector_token}"},
+            headers={"Authorization": f"Bearer {token}"},
             timeout=10,
         )
         result = {"ok": response.ok, "status_code": response.status_code, "response": response.text[:500]}

@@ -394,6 +394,9 @@ Acesse `LAN / L2TP IPsec` na interface web.
 Campos principais:
 
 - Servidor VPN remoto.
+- IP local IPsec, quando o host tiver IP privado e IP publico na mesma interface. No ambiente validado: `131.108.136.133`.
+- ID local IPsec, deixe vazio para o Mikrotik L2TP/IPsec dinamico, a menos que o concentrador exija ID especifico.
+- Propostas IKE/ESP, opcionais. Use para casar phase1/phase2 com o profile/proposal do concentrador.
 - Usuario.
 - Senha.
 - PSK.
@@ -418,11 +421,54 @@ O entrypoint regenera e copia a configuracao ativa para:
 /etc/xl2tpd/xl2tpd.conf
 ```
 
+Padrao validado com Mikrotik L2TP/IPsec:
+
+```ini
+# /etc/ipsec.conf
+conn netops-l2tp
+    keyexchange=ikev1
+    authby=secret
+    type=transport
+    forceencaps=yes
+    left=131.108.136.133
+    leftprotoport=17/1701
+    right=45.169.161.132
+    rightid=%any
+    rightprotoport=17/1701
+    ikelifetime=1d
+    lifetime=30m
+    ike=aes128-sha1-modp2048,aes128-sha1-modp1024,3des-sha1-modp2048,3des-sha1-modp1024
+    esp=aes128-sha1-modp1024,aes192-sha1-modp1024,aes256-sha1-modp1024,3des-sha1-modp1024
+```
+
+```ini
+# /etc/xl2tpd/xl2tpd.conf
+[global]
+access control = no
+listen-addr = 131.108.136.133
+
+[lac netops-l2tp]
+lns = 45.169.161.132
+pppoptfile = /etc/netops-cli/ipsec/options.xl2tpd
+length bit = yes
+redial = no
+autodial = no
+```
+
+Notas importantes:
+
+- Nao usar `require ipsec = yes` no `xl2tpd.conf`; o `xl2tpd` 1.3.18 rejeita essa diretiva.
+- Usar `listen-addr` igual ao `left` do IPsec quando o host tiver mais de um IP. Sem isso, o L2TP pode sair pela origem errada e expirar em `Maximum retries exceeded`.
+- O arquivo `/etc/ipsec.secrets` usa PSK catch-all (`: PSK "..."`) para casar com peer dinamico do Mikrotik.
+- No Mikrotik, a identity do IPsec precisa usar `auth-method=pre-shared-key`.
+
 Comportamento de conexao:
 
 - O app limpa tentativa anterior antes de conectar.
+- O app garante que o `xl2tpd` esteja rodando.
 - O app executa `ipsec up netops-l2tp`.
 - O L2TP so e iniciado se o IPsec estabelecer com sucesso.
+- Quando `ppp0` sobe, o app reaplica as rotas estaticas salvas.
 - Se o IPsec falhar ou ficar preso em `CONNECTING`, a tentativa e limpa e o erro aparece na tela.
 
 Validacao:
@@ -461,6 +507,21 @@ Exemplos:
 10.10.0.0/16 via 192.168.88.1 dev eth0
 172.16.0.0/12 dev wg-netops
 10.200.0.0/16 via 10.164.172.1 dev ppp0
+10.0.0.0/8 via 10.164.172.1 dev ppp0
+```
+
+Para redes remotas via L2TP, a rota so funciona depois que `ppp0` existe. O conector reaplica as rotas salvas ao conectar o L2TP. Validacao:
+
+```bash
+docker exec -it netops_cli_connector ip route get 10.200.3.1
+docker exec -it netops_cli_connector ping -c 3 10.200.3.1
+```
+
+Estado esperado:
+
+```text
+10.200.3.1 via 10.164.172.1 dev ppp0 src 10.199.99.232
+3 packets transmitted, 3 received, 0% packet loss
 ```
 
 CLI:
@@ -605,6 +666,27 @@ O ultimo resultado fica em:
 /etc/netops-cli/runtime/heartbeat.json
 ```
 
+## Fila de jobs NetOps (coletas automaticas)
+
+Alem do heartbeat, o conector executa jobs enfileirados pelo NetOps Server:
+
+```text
+GET  /api/connectors/jobs/pending
+POST /api/connectors/jobs/:id/result
+```
+
+Tipos suportados: `PING`, `TRACEROUTE`, `TCP_CHECK`, `ROUTE_CHECK`, `SNMP_GET`, `SNMP_WALK`, `SSH_COMMAND`, `SSH_CONFIG_BUNDLE`, `WG_STATUS`.
+
+O loop roda automaticamente quando `JOB_POLL_ENABLED=true` (default). Estado em `/etc/netops-cli/runtime/jobs_poll.json`.
+
+Poll manual:
+
+```bash
+docker exec -it netops_cli_connector netops-cli jobs-poll
+```
+
+No dashboard, os paineis **Fila NetOps** e **Ultimo job** mostram a ultima execucao.
+
 ## CLI Interno
 
 Comandos disponiveis:
@@ -691,13 +773,32 @@ docker exec -it netops_cli_connector ip -br addr show ppp0
 
 Pontos comuns:
 
-- PSK incorreta.
+- PSK incorreta (deve ser igual ao `ipsec-secret` do `/interface l2tp-server server` no Mikrotik).
 - Usuario/senha PPP incorretos.
-- Propostas IKE/ESP incompatíveis.
-- Servidor exige ID especifico.
+- Propostas IKE/ESP incompatíveis com o `/ip ipsec profile` default do Mikrotik.
+- Servidor exige ID especifico (`leftid` = IP publico do cliente).
 - UDP 500/4500/1701 bloqueado.
 - NAT intermediario sem NAT-T.
 - Rota remota ausente.
+
+Mikrotik ROS 6 — alinhar propostas ao `/ip ipsec profile` + `/ip ipsec proposal` default:
+
+| Mikrotik | NetOps CLI (strongSwan) |
+|----------|-------------------------|
+| profile enc `aes-128,3des` + hash `sha1` + dh `modp2048,modp1024` | IKE: `aes128-sha1-modp2048,3des-sha1-modp2048` |
+| proposal enc `aes-256-cbc,...` + auth `sha1` + pfs `modp1024` | ESP: `aes128-sha1-modp1024,aes256-sha1-modp1024` |
+
+**Nao** oferecer `aes256` na fase 1 se o profile Mikrotik so tem `aes-128,3des`.
+
+Confirme tambem no Mikrotik:
+
+```bash
+/interface l2tp-server server print
+/ip ipsec peer print detail where dynamic
+/ppp secret print where service=l2tp
+```
+
+O L2TP server precisa de `use-ipsec=yes` e `ipsec-secret` igual a PSK do NetOps CLI. Sem isso o peer dinamico nao nasce e aparece `no auth method defined for peer`.
 
 SNMP nao responde mas ping responde:
 

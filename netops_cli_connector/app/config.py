@@ -19,6 +19,12 @@ class Settings:
     web_host: str = os.getenv("WEB_HOST", "0.0.0.0")
     web_port: int = int(os.getenv("WEB_PORT", "8080"))
     heartbeat_interval_seconds: int = int(os.getenv("HEARTBEAT_INTERVAL_SECONDS", "60"))
+    job_poll_interval_seconds: int = int(os.getenv("JOB_POLL_INTERVAL_SECONDS", "10"))
+    job_poll_enabled: bool = os.getenv("JOB_POLL_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
+    job_timeout_seconds: int = int(os.getenv("JOB_TIMEOUT_SECONDS", "120"))
+    ssh_connect_timeout: int = int(os.getenv("SSH_CONNECT_TIMEOUT", "15"))
+    ssh_command_timeout: int = int(os.getenv("SSH_COMMAND_TIMEOUT", "90"))
+    snmp_max_lines: int = int(os.getenv("SNMP_MAX_LINES", "500"))
     session_secret: str = os.getenv("SESSION_SECRET", "change-this-random-secret")
     config_root: Path = Path(os.getenv("CONFIG_ROOT", "/etc/netops-cli"))
 

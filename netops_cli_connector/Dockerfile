@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     traceroute \
     netcat-openbsd \
     openssh-client \
+    sshpass \
     snmp \
     wireguard-tools \
     strongswan \

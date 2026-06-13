@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from app.config import settings
 from app.services import firewall, l2tp_ipsec, routing, wireguard
 from app.services.diagnostics import interfaces
+from app.services.job_poll import jobs_state
 from app.storage import read_json, write_json_secure
 
 
@@ -49,4 +50,5 @@ def get_status() -> dict:
         "interfaces": interfaces().stdout,
         "system_routes": routing.system_routes().stdout,
         "last_heartbeat": heartbeat_state(),
+        "jobs_poll": jobs_state(),
     }

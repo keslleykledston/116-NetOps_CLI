@@ -35,6 +35,10 @@ def page(request: Request):
 def save(
     request: Request,
     server: str = Form(""),
+    local_address: str = Form(""),
+    local_id: str = Form(""),
+    ike_proposals: str = Form(""),
+    esp_proposals: str = Form(""),
     username: str = Form(""),
     password: str = Form(""),
     psk: str = Form(""),
@@ -46,6 +50,10 @@ def save(
     existing = l2tp_ipsec.get_config()
     data = {
         "server": server,
+        "local_address": local_address,
+        "local_id": local_id,
+        "ike_proposals": ike_proposals,
+        "esp_proposals": esp_proposals,
         "username": username,
         "password": password if password and not password.startswith("****") else existing.get("password", ""),
         "psk": psk if psk and not psk.startswith("****") else existing.get("psk", ""),

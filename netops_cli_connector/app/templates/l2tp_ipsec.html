@@ -10,6 +10,10 @@
 
 <form class="form-grid" method="post" action="/l2tp-ipsec/save">
   <label>Servidor VPN remoto <input name="server" value="{{ raw.server or '' }}"></label>
+  <label>IP local IPsec <input name="local_address" value="{{ raw.local_address or '' }}" placeholder="%defaultroute"></label>
+  <label>ID local IPsec <input name="local_id" value="{{ raw.local_id or '' }}" placeholder="deixe vazio para Mikrotik"></label>
+  <label>Propostas IKE <input name="ike_proposals" value="{{ raw.ike_proposals or '' }}" placeholder="auto: aes128-sha1-modp2048,3des-sha1-modp2048"></label>
+  <label>Propostas ESP <input name="esp_proposals" value="{{ raw.esp_proposals or '' }}" placeholder="auto: aes128-sha1-modp1024 + pfs"></label>
   <label>Usuario <input name="username" value="{{ raw.username or '' }}"></label>
   <label>Senha <input name="password" type="password" placeholder="{{ config.password or '' }}"></label>
   <label>PSK <input name="psk" type="password" placeholder="{{ config.psk or '' }}"></label>
@@ -67,6 +71,28 @@ rc={{ diagnostics.l2tp_interface.returncode }}
 rc={{ diagnostics.processes.returncode }}
 {{ diagnostics.processes.stdout }}
 {{ diagnostics.processes.stderr }}</pre>
+
+<h3>Rota ate o servidor</h3>
+<pre>{{ diagnostics.server_route.command }}
+rc={{ diagnostics.server_route.returncode }}
+{{ diagnostics.server_route.stdout }}
+{{ diagnostics.server_route.stderr }}</pre>
+
+<h3>UDP do servidor VPN</h3>
+<pre>{{ diagnostics.udp_500.command }}
+rc={{ diagnostics.udp_500.returncode }}
+{{ diagnostics.udp_500.stdout }}
+{{ diagnostics.udp_500.stderr }}
+
+{{ diagnostics.udp_4500.command }}
+rc={{ diagnostics.udp_4500.returncode }}
+{{ diagnostics.udp_4500.stdout }}
+{{ diagnostics.udp_4500.stderr }}
+
+{{ diagnostics.udp_1701.command }}
+rc={{ diagnostics.udp_1701.returncode }}
+{{ diagnostics.udp_1701.stdout }}
+{{ diagnostics.udp_1701.stderr }}</pre>
 
 <h3>Rotas</h3>
 <pre>{{ diagnostics.routes.stdout }}</pre>

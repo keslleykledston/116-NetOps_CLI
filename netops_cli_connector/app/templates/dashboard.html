@@ -12,6 +12,8 @@
   <div class="panel"><strong>Rotas configuradas</strong><code>{{ status.routes_count }}</code></div>
   <div class="panel"><strong>NAT</strong><span class="pill {{ 'ok' if status.nat_enabled else 'bad' }}">{{ 'ativo' if status.nat_enabled else 'inativo' }}</span></div>
   <div class="panel"><strong>Ultimo heartbeat</strong><code>{{ status.last_heartbeat.sent_at or 'nunca' }}</code></div>
+  <div class="panel"><strong>Fila NetOps</strong><span class="pill {{ 'ok' if status.jobs_poll.get('ok') else 'bad' }}">{{ status.jobs_poll.get('processed', 0) }} job(s)</span></div>
+  <div class="panel"><strong>Ultimo job</strong><code>{% if status.jobs_poll.get('last_job') %}{{ status.jobs_poll.last_job.type }} → {{ status.jobs_poll.last_job.target }}{% else %}nenhum{% endif %}</code></div>
 </section>
 
 <h2>WireGuard</h2>
